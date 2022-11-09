@@ -24,6 +24,8 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Install redis extension for php
 RUN pecl install redis && docker-php-ext-enable redis
 
+RUN composer config --no-plugins allow-plugins.wikimedia/composer-merge-plugin true
+
 # Set working directory
 WORKDIR /var/www
 
