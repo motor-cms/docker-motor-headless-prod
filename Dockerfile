@@ -24,8 +24,5 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Install redis extension for php
 RUN pecl install redis && docker-php-ext-enable redis
 
-# Set working directory
-WORKDIR /var/www
-
 # Install depedencies, set .env file, clear all caches and start fpm
-CMD cp .env.example .env && composer install && php artisan key:generate && php artisan storage:link && php artisan migrate --force && php-fpm
+CMD php-fpm
