@@ -26,13 +26,14 @@ RUN apt-get update && apt-get install -y \
     gifsicle \
     libavif-bin \
     libwebp-dev \
+    libxslt-dev \
     webp
 
 # Clear cache
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install PHP extensions
-RUN docker-php-ext-configure gd --enable-gd --with-freetype --with-jpeg --with-webp && docker-php-ext-install pdo_mysql mysqli mbstring exif pcntl bcmath gd zip soap intl
+RUN docker-php-ext-configure gd --enable-gd --with-freetype --with-jpeg --with-webp && docker-php-ext-install pdo_mysql mysqli mbstring exif pcntl bcmath gd zip soap intl xsl
 
 # Get latest Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -43,5 +44,11 @@ RUN pecl install redis && docker-php-ext-enable redis
 # Install imagick extension for php
 RUN pecl install imagick && docker-php-ext-enable imagick
 
-# Install depedencies, set .env file, clear all caches and start fpm
-CMD php-fpm
+# Set working directory
+WORKDIR /var/www
+
+# define entrypoint
+COPY ./entrypoint.sh /var/www/entrypoint.sh
+RUN chmod +x /var/www/entrypoint.sh
+
+ENTRYPOINT /var/www/entrypoint.sh
