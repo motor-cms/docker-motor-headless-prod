@@ -27,6 +27,7 @@ RUN apt-get update && apt-get install -y \
     libavif-bin \
     libwebp-dev \
     libxslt-dev \
+    git \
     webp
 
 # Clear cache
@@ -42,7 +43,10 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 RUN pecl install redis && docker-php-ext-enable redis
 
 # Install imagick extension for php
-RUN pecl install imagick && docker-php-ext-enable imagick
+RUN cd /tmp
+RUN git clone https://github.com/Imagick/imagick.git
+RUN pecl install /tmp/imagick/package.xml  \
+RUN docker-php-ext-enable imagick
 
 # Set working directory
 WORKDIR /var/www
