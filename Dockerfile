@@ -28,7 +28,11 @@ RUN apt-get update && apt-get install -y \
     libwebp-dev \
     libxslt-dev \
     git \
-    webp
+    webp \
+    pdftk-java \
+    gnupg2 \
+    apt-transport-https \
+    ca-certificates
 
 # Clear cache
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
@@ -43,13 +47,7 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 RUN pecl install redis && docker-php-ext-enable redis
 
 # Install imagick extension for php
-ADD --chmod=0755 https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions /usr/local/bin/
-RUN install-php-extensions imagick/imagick@master
-
-#RUN cd /tmp
-#RUN git clone https://github.com/Imagick/imagick.git
-#RUN pecl install /tmp/imagick/package.xml
-#RUN docker-php-ext-enable imagick
+RUN pecl install imagick && docker-php-ext-enable imagick
 
 # Set working directory
 WORKDIR /var/www
