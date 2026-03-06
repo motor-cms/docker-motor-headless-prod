@@ -8,13 +8,12 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-reco
     && pecl install redis imagick \
     && docker-php-ext-enable redis imagick
 
-FROM php:8.4-fpm-bookworm
+# ── Production ───────────────────────────────
+FROM php:8.4-fpm-bookworm AS production
 
-# Copy compiled extensions from builder
 COPY --from=builder /usr/local/lib/php/extensions/ /usr/local/lib/php/extensions/
 COPY --from=builder /usr/local/etc/php/conf.d/ /usr/local/etc/php/conf.d/
 
-# Only runtime dependencies — no -dev packages
 RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
     jq git curl zip unzip cron imagemagick ffmpeg wget supervisor \
     jpegoptim optipng pngquant gifsicle libavif-bin webp pdftk-java \
@@ -37,3 +36,23 @@ WORKDIR /var/www
 COPY ./entrypoint.sh /var/www/entrypoint.sh
 RUN chmod +x /var/www/entrypoint.sh
 ENTRYPOINT ["/var/www/entrypoint.sh"]
+
+# ── Dev ──────────────────────────────────────
+FROM production AS dev
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        gcc \
+        make \
+        autoconf \
+        linux-libc-dev \
+        libc6-dev \
+    && pecl install xdebug \
+    && docker-php-ext-enable xdebug \
+    && apt-get remove --purge -y gcc make autoconf linux-libc-dev libc6-dev \
+    && apt-get autoremove -y \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+COPY ./xdebug.ini /usr/local/etc/php/conf.d/docker-php-ext-xdebug-config.ini
+
+COPY ./entrypoint.dev.sh /var/www/entrypoint.sh
+RUN chmod +x /var/www/entrypoint.sh
