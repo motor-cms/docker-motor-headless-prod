@@ -16,7 +16,7 @@ COPY --from=builder /usr/local/etc/php/conf.d/ /usr/local/etc/php/conf.d/
 
 RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
     jq git curl zip unzip cron imagemagick ffmpeg wget supervisor \
-    jpegoptim optipng pngquant gifsicle libavif-bin webp pdftk-java \
+    jpegoptim optipng pngquant gifsicle libavif-bin webp \
     libpng16-16 libjpeg62-turbo libgd3 libonig5 libxml2 libzip4 \
     libmagickwand-6.q16-6 libwebp7 libxslt1.1 ca-certificates \
     && apt-get remove --purge -y \
