@@ -39,6 +39,7 @@ jobs:
       github.event.inputs.image == 'all'
     runs-on: ${{ matrix.runner }}
     strategy:
+      fail-fast: false
       matrix:
         include:
           - runner: ubuntu-latest
@@ -92,20 +93,32 @@ jobs:
             type=raw,value=${{ steps.date.outputs.tag }},enable=${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
 
       - name: Build and push by digest
-        id: build
-        uses: docker/build-push-action@v5
+        uses: nick-fields/retry@v3
+        env:
+          BUILDX_LABELS: ${{ steps.meta.outputs.labels }}
         with:
-          context: php-84
-          file: php-84/Dockerfile
-          platforms: ${{ matrix.platform }}
-          target: ${{ matrix.target }}
-          outputs: type=image,name=motorcms/motor-headless-php-84-${{ matrix.suffix }},push-by-digest=true,name-canonical=true,push=true
-          labels: ${{ steps.meta.outputs.labels }}
+          timeout_minutes: 15
+          max_attempts: 3
+          retry_wait_seconds: 30
+          command: |
+            LABEL_ARGS=()
+            while IFS= read -r line; do
+              [ -n "$line" ] && LABEL_ARGS+=(--label "$line")
+            done <<< "$BUILDX_LABELS"
+
+            docker buildx build \
+              --platform "${{ matrix.platform }}" \
+              --target "${{ matrix.target }}" \
+              --output "type=image,name=motorcms/motor-headless-php-84-${{ matrix.suffix }},push-by-digest=true,name-canonical=true,push=true" \
+              --metadata-file "$RUNNER_TEMP/build-metadata.json" \
+              --file php-84/Dockerfile \
+              "${LABEL_ARGS[@]}" \
+              php-84
 
       - name: Export digest
         run: |
           mkdir -p /tmp/digests
-          digest="${{ steps.build.outputs.digest }}"
+          digest=$(jq -r '."containerimage.digest"' "$RUNNER_TEMP/build-metadata.json")
           touch "/tmp/digests/${digest#sha256:}"
 
       - name: Upload digest
@@ -180,6 +193,7 @@ jobs:
       github.event.inputs.image == 'all'
     runs-on: ${{ matrix.runner }}
     strategy:
+      fail-fast: false
       matrix:
         include:
           - runner: ubuntu-latest
@@ -233,20 +247,32 @@ jobs:
             type=raw,value=${{ steps.date.outputs.tag }},enable=${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
 
       - name: Build and push by digest
-        id: build
-        uses: docker/build-push-action@v5
+        uses: nick-fields/retry@v3
+        env:
+          BUILDX_LABELS: ${{ steps.meta.outputs.labels }}
         with:
-          context: php-85
-          file: php-85/Dockerfile
-          platforms: ${{ matrix.platform }}
-          target: ${{ matrix.target }}
-          outputs: type=image,name=motorcms/motor-headless-php-85-${{ matrix.suffix }},push-by-digest=true,name-canonical=true,push=true
-          labels: ${{ steps.meta.outputs.labels }}
+          timeout_minutes: 15
+          max_attempts: 3
+          retry_wait_seconds: 30
+          command: |
+            LABEL_ARGS=()
+            while IFS= read -r line; do
+              [ -n "$line" ] && LABEL_ARGS+=(--label "$line")
+            done <<< "$BUILDX_LABELS"
+
+            docker buildx build \
+              --platform "${{ matrix.platform }}" \
+              --target "${{ matrix.target }}" \
+              --output "type=image,name=motorcms/motor-headless-php-85-${{ matrix.suffix }},push-by-digest=true,name-canonical=true,push=true" \
+              --metadata-file "$RUNNER_TEMP/build-metadata.json" \
+              --file php-85/Dockerfile \
+              "${LABEL_ARGS[@]}" \
+              php-85
 
       - name: Export digest
         run: |
           mkdir -p /tmp/digests
-          digest="${{ steps.build.outputs.digest }}"
+          digest=$(jq -r '."containerimage.digest"' "$RUNNER_TEMP/build-metadata.json")
           touch "/tmp/digests/${digest#sha256:}"
 
       - name: Upload digest
@@ -321,6 +347,7 @@ jobs:
       github.event.inputs.image == 'all'
     runs-on: ${{ matrix.runner }}
     strategy:
+      fail-fast: false
       matrix:
         include:
           - runner: ubuntu-latest
@@ -374,22 +401,33 @@ jobs:
             type=raw,value=${{ steps.date.outputs.tag }},enable=${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
 
       - name: Build and push by digest
-        id: build
-        uses: docker/build-push-action@v5
+        uses: nick-fields/retry@v3
+        env:
+          BUILDX_LABELS: ${{ steps.meta.outputs.labels }}
         with:
-          context: node
-          file: node/Dockerfile
-          platforms: ${{ matrix.platform }}
-          target: ${{ matrix.target }}
-          outputs: type=image,name=motorcms/motor-headless-node-22-${{ matrix.suffix }},push-by-digest=true,name-canonical=true,push=true
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            REGISTRY_AUTH_TOKEN=${{ secrets.REGISTRY_AUTH_TOKEN }}
+          timeout_minutes: 15
+          max_attempts: 3
+          retry_wait_seconds: 30
+          command: |
+            LABEL_ARGS=()
+            while IFS= read -r line; do
+              [ -n "$line" ] && LABEL_ARGS+=(--label "$line")
+            done <<< "$BUILDX_LABELS"
+
+            docker buildx build \
+              --platform "${{ matrix.platform }}" \
+              --target "${{ matrix.target }}" \
+              --output "type=image,name=motorcms/motor-headless-node-22-${{ matrix.suffix }},push-by-digest=true,name-canonical=true,push=true" \
+              --metadata-file "$RUNNER_TEMP/build-metadata.json" \
+              --build-arg "REGISTRY_AUTH_TOKEN=${{ secrets.REGISTRY_AUTH_TOKEN }}" \
+              --file node/Dockerfile \
+              "${LABEL_ARGS[@]}" \
+              node
 
       - name: Export digest
         run: |
           mkdir -p /tmp/digests
-          digest="${{ steps.build.outputs.digest }}"
+          digest=$(jq -r '."containerimage.digest"' "$RUNNER_TEMP/build-metadata.json")
           touch "/tmp/digests/${digest#sha256:}"
 
       - name: Upload digest
