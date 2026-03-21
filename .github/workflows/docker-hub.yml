@@ -1,10 +1,27 @@
-# This is a basic workflow to help you get started with Actions
-
 name: Docker Builds + Docker Hub Upload
 
-# Controls when the workflow will run
 on:
+  schedule:
+    - cron: '0 3 * * 1'  # Every Monday at 3am UTC
   workflow_dispatch:
+    inputs:
+      image:
+        description: 'Image to build'
+        required: true
+        type: choice
+        options:
+          - php
+          - php-85
+          - node
+          - all
+      target:
+        description: 'Target stage'
+        required: true
+        type: choice
+        options:
+          - all
+          - prod
+          - dev
   push:
     tags:
       - '*.*.*'
@@ -13,50 +30,179 @@ permissions:
   contents: read
   packages: write
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  build-php8:
+  build-php:
+    if: >-
+      github.event_name == 'push' ||
+      github.event_name == 'schedule' ||
+      github.event.inputs.image == 'php' ||
+      github.event.inputs.image == 'all'
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - target: production
+            suffix: prod
+          - target: dev
+            suffix: dev
     steps:
-      # Get the repositery's code
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
-      # https://github.com/docker/setup-qemu-action
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
-      # https://github.com/docker/setup-buildx-action
+        uses: docker/setup-qemu-action@v3
+
       - name: Set up Docker Buildx
-        id: buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: Login to Docker Hub
-        if: github.event_name != 'pull_request'
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Generate date tag
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        id: date
+        run: echo "tag=$(date -u +'%Y.%W')" >> "$GITHUB_OUTPUT"
+
       - name: Docker meta
-        id: meta_php8
-        uses: docker/metadata-action@v3
+        id: meta
+        uses: docker/metadata-action@v5
         with:
-          # list of Docker images to use as base name for tags
-          images: |
-            motorcms/motor-headless-php-81-prod
-          # generate Docker tags based on the following events/attributes
+          images: motorcms/motor-headless-php-84-${{ matrix.suffix }}
           tags: |
-            type=schedule
-            type=ref,event=branch
-            type=ref,event=pr
+            type=raw,value=latest
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
-            type=sha
+            type=raw,value=${{ steps.date.outputs.tag }},enable=${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+
       - name: Build and push
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v5
         with:
-          context: .
+          context: php
+          file: php/Dockerfile
           platforms: linux/amd64,linux/arm64
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta_php8.outputs.tags }}
-          labels: ${{ steps.meta_php8.outputs.labels }}
+          target: ${{ matrix.target }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+  build-php-85:
+    if: >-
+      github.event_name == 'push' ||
+      github.event_name == 'schedule' ||
+      github.event.inputs.image == 'php-85' ||
+      github.event.inputs.image == 'all'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - target: production
+            suffix: prod
+          - target: dev
+            suffix: dev
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Generate date tag
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        id: date
+        run: echo "tag=$(date -u +'%Y.%W')" >> "$GITHUB_OUTPUT"
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: motorcms/motor-headless-php-85-${{ matrix.suffix }}
+          tags: |
+            type=raw,value=latest
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=raw,value=${{ steps.date.outputs.tag }},enable=${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: php-85
+          file: php-85/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          target: ${{ matrix.target }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+  build-node:
+    if: >-
+      github.event_name == 'push' ||
+      github.event_name == 'schedule' ||
+      github.event.inputs.image == 'node' ||
+      github.event.inputs.image == 'all'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - target: production
+            suffix: prod
+          - target: dev
+            suffix: dev
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Generate date tag
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        id: date
+        run: echo "tag=$(date -u +'%Y.%W')" >> "$GITHUB_OUTPUT"
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: motorcms/motor-headless-node-22-${{ matrix.suffix }}
+          tags: |
+            type=raw,value=latest
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=raw,value=${{ steps.date.outputs.tag }},enable=${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: node
+          file: node/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          target: ${{ matrix.target }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            REGISTRY_AUTH_TOKEN=${{ secrets.REGISTRY_AUTH_TOKEN }}
