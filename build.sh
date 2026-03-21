@@ -5,14 +5,14 @@ set -euo pipefail
 BUILDER="my-builder"
 PLATFORMS="linux/amd64,linux/arm64"
 
-IMAGE="${1:?Usage: $0 <php|php-85|node> <version> [prod|dev]}"
+IMAGE="${1:?Usage: $0 <php-84|php-85|node> <version> [prod|dev]}"
 VERSION="${2:?Usage: $0 <php|php-85|node> <version> [prod|dev]}"
 TARGET="${3:-all}"
 
 case "$IMAGE" in
-    php)
+    php-84)
         REPO="motorcms/motor-headless-php-84"
-        CONTEXT="php"
+        CONTEXT="php-84"
         BUILD_ARGS=""
         ;;
     php-85)
@@ -26,7 +26,7 @@ case "$IMAGE" in
         BUILD_ARGS="--build-arg REGISTRY_AUTH_TOKEN=${REGISTRY_AUTH_TOKEN:?Set REGISTRY_AUTH_TOKEN env var}"
         ;;
     *)
-        echo "Unknown image: $IMAGE (use php, php-85, or node)" && exit 1
+        echo "Unknown image: $IMAGE (use php-84, php-85, or node)" && exit 1
         ;;
 esac
 
