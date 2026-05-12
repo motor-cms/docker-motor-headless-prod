@@ -17,7 +17,7 @@ COPY --from=builder /usr/local/lib/php/extensions/ /usr/local/lib/php/extensions
 COPY --from=builder /usr/local/etc/php/conf.d/ /usr/local/etc/php/conf.d/
 
 RUN apk update && apk upgrade --no-cache && apk add --no-cache \
-    jq git curl zip unzip dcron imagemagick ffmpeg wget supervisor \
+    bash jq git curl zip unzip dcron imagemagick ffmpeg wget supervisor \
     jpegoptim optipng pngquant gifsicle libavif-apps libwebp-tools \
     libpng libjpeg-turbo gd oniguruma libxml2 libzip \
     imagemagick-libs libwebp freetype libxslt icu-libs ca-certificates
